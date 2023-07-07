@@ -17,21 +17,28 @@ def dataset_load():
 model = model()
 data = dataset_load()
 
-def main():
-    st.title('Wellness Chatbot')
-    st.header('User profile')
+st.header('Wellness Chatbot')
 
-    name = st.text_input('Name')
+if 'generated' not in st.session_state:
+    st.session_state['generated'] = []
 
-    if name != '':
-        st.subheader(name + '님 안녕하세요!')
+if 'past' not in st.session_state:
+    st.session_state['past'] = []
 
-    age = st.slider('Age', 1, 100, 30, 5)
-    st.text('My age : {}'.format(age))
+with st.form('form', clear_on_submit=True):
+    user_input = st.text_input('사용자 : ', '')
+    submitted = st.form_submit_button('전송')
 
+if submitted and user_input:
+    embedding = model.encode(user_input)
 
+    data['similar'] = data['encoding'].map(lambda x: cosine_similarity([embedding], [x]).squeeze())
+    answer = data.loc[data['similar'].idxmax()]
 
+    st.session_state.past.append(user_input)
+    st.session_state.generated.append(answer['챗봇'])
 
-if __name__ == '__main__':
-    main()
-
+for i in range(len(st.session_state['past'])):
+    message(st.session_state['past'][i], is_user=True, key=str(i) + '_user')
+    if len(st.session_state['generated']) > i:
+        message(st.session_state['generated'][i], key=str(i) + '_bot')
